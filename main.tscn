@@ -1,0 +1,14 @@
+[gd_scene format=3 uid="uid://dn18yoo2lhm1d"]
+
+[ext_resource type="Script" uid="uid://vb6whfr3wht" path="res://main.gd" id="1_ig7tw"]
+[ext_resource type="Texture2D" uid="uid://dgmr6kpt1valg" path="res://icon.svg" id="2_0xm2m"]
+
+[node name="Main" type="Node2D" unique_id=1206391251]
+script = ExtResource("1_ig7tw")
+
+[node name="MultiMeshInstance2D" type="MultiMeshInstance2D" parent="." unique_id=1474040101]
+texture = ExtResource("2_0xm2m")
+
+[node name="Camera2D" type="Camera2D" parent="." unique_id=1246607384]
+offset = Vector2(960, 540)
+zoom = Vector2(1.5, 1.5)

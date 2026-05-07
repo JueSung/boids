@@ -1,0 +1,20 @@
+[gd_scene format=3 uid="uid://b0crhp0a6vb4r"]
+
+[ext_resource type="Script" uid="uid://r08yqvmf6kf7" path="res://bird_1.gd" id="1_0c7wx"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_5102j"]
+size = Vector2(30, 15)
+
+[node name="Bird1" type="Area2D" unique_id=1331670099]
+collision_mask = 0
+script = ExtResource("1_0c7wx")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=1844764844]
+shape = SubResource("RectangleShape2D_5102j")
+
+[node name="Area2D" type="Area2D" parent="." unique_id=1721781275]
+visible = false
+collision_layer = 0
+
+[node name="CollisionShape2D" type="CollisionPolygon2D" parent="Area2D" unique_id=1547310295]
+polygon = PackedVector2Array(-50, -150, -20, 0, -50, 150, 150, 100, 250, 0, 150, -100)
