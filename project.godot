@@ -31,6 +31,7 @@ left_click={
 
 [physics]
 
+common/physics_ticks_per_second=48
 3d/physics_engine="Jolt Physics"
 
 [rendering]
