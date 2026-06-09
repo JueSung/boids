@@ -1,6 +1,8 @@
 #[compute]
 #version 450
 
+#define MAX_BOID_COUNT (1024 * 50)
+
 #define BOID_COUNT (1024 * 20)
 
 #define WIDTH 32
@@ -11,6 +13,11 @@
 
 #define WORK_GROUP_SIZE 1024
 
+#define CELL_HEIGHT (float(VIEWPORT_WIDTH) / WIDTH)
+#define CELL_WIDTH (float(VIEWPORT_HEIGHT) / HEIGHT)
+
+#define ZERO_TOLERANCE 1e-3
+
 struct Boid {
   vec2 position;
   vec2 velocity; // rotation encoded in velocity
@@ -19,12 +26,12 @@ struct Boid {
 layout(local_size_x = WORK_GROUP_SIZE, local_size_y = 1, local_size_z = 1) in;
 
 layout(set = 0, binding = 0, std430) buffer BoidBufferRead {
-    Boid boids[BOID_COUNT];
+    Boid boids[MAX_BOID_COUNT];
 }
 boidBufferRead;
 
 layout(set = 0, binding = 2, std430) buffer BoidBufferWrite {
-    Boid boids[BOID_COUNT];
+    Boid boids[MAX_BOID_COUNT];
 }
 boidBufferWrite;
 
@@ -45,11 +52,11 @@ layout(set = 0, binding = 3, std430) buffer IndexOffsetsBuffer {
 } indexOffsetsBuffer;
 
 layout(set = 0, binding = 4, std430) buffer OffsetsBuffer {
-	uint arr[BOID_COUNT];
+	uint arr[MAX_BOID_COUNT];
 } offsetsBuffer;
 
 layout(set = 0, binding = 5, std430) buffer TransformBuffer {
-	float arr[BOID_COUNT * 8];
+	float arr[MAX_BOID_COUNT * 8];
 } transform_buffer;
 
 
@@ -58,21 +65,23 @@ void main() {
 	if (id >= params.boid_count) return;
 
 	Boid me = boidBufferRead.boids[id];
-	vec2 me_vel_norm = normalize(me.velocity);
+	vec2 me_vel_norm = length(me.velocity) < ZERO_TOLERANCE ? me.velocity : normalize(me.velocity);
 
 	// int NEIGHBOR_RADIUS = 80; // dist for neighbors to contribute at all - will be replaced by grid thing
 	// int SEPARATION_RADIUS = 40; // dist for separation to play a role
 
-	int NEIGHBOR_CELL_RADIUS = 2;
+	// int NEIGHBOR_CELL_RADIUS = 2;
+	int NEIGHBOR_CELL_RADIUS_HEIGHT = int((params.neighbor_radius + CELL_HEIGHT - 1)/ CELL_HEIGHT);
+	int NEIGHBOR_CELL_RADIUS_WIDTH = int((params.neighbor_radius + CELL_WIDTH - 1)/ CELL_WIDTH);
 	ivec2 me_cell_pos = ivec2(int(me.position.x/float(VIEWPORT_WIDTH) * WIDTH), int(me.position.y / float(VIEWPORT_HEIGHT) * HEIGHT));
 
 	vec2 cohesion = vec2(0,0);
 	vec2 separation = vec2(0,0);
 	vec2 alignment = vec2(0,0);
 	uint neighbors = 0;
-	for (int row = me_cell_pos.y - NEIGHBOR_CELL_RADIUS; row <= me_cell_pos.y + NEIGHBOR_CELL_RADIUS; row+= 1) {
+	for (int row = me_cell_pos.y - NEIGHBOR_CELL_RADIUS_HEIGHT; row <= me_cell_pos.y + NEIGHBOR_CELL_RADIUS_HEIGHT; row+= 1) {
 		if (row < 0 || row >= HEIGHT) continue;
-		for (int col = me_cell_pos.x - NEIGHBOR_CELL_RADIUS; col <= me_cell_pos.x + NEIGHBOR_CELL_RADIUS; col+= 1) {
+		for (int col = me_cell_pos.x - NEIGHBOR_CELL_RADIUS_WIDTH; col <= me_cell_pos.x + NEIGHBOR_CELL_RADIUS_WIDTH; col+= 1) {
 			if (col < 0 || col >= WIDTH) continue;
 			
 			int cell_ind = row * WIDTH + col;
@@ -122,10 +131,9 @@ void main() {
 	
 	// }
 	
-	const float SPEED = params.speed;
 	// const float ACCELERATION = 1000; // whatever that means;
 
-	vec2 new_vel = me.velocity;
+	vec2 new_vel = params.speed * me_vel_norm;
 	// me.velocity = vec2(0,0);
 	if (neighbors != 0) {
 		vec2 cohesion_dir = normalize(cohesion/float(neighbors) - me.position);
@@ -134,17 +142,16 @@ void main() {
 		//////////////////////////////////////////////////////////////////////////////////////////////////
 		// this line to tweak balancing-------------------------------------------------------------------
 		//////////////////////////////////////////////////////////////////////////////////////////////////
-		vec2 target_vel = SPEED * normalize(params.cohesion_factor * cohesion_dir + params.alignment_factor * alignment_dir + params.separation_factor * separation);
+		vec2 target_vel = params.speed * normalize(params.cohesion_factor * cohesion_dir + params.alignment_factor * alignment_dir + params.separation_factor * separation);
 		//////////////////////////////////////////////////////////////////////////////////////////////////
 		//------------------------------------------------------------------------------------------------
 		//////////////////////////////////////////////////////////////////////////////////////////////////
 		
-		//float rot = atan(me.velocity.y, me.velocity.x) + (target_vel.x * me.velocity.y - target_vel.y * me.velocity.x < 0 ? 1 : -1) * TURN_SPEED * params.delta;
-		vec2 me_norm_vel = length(me.velocity) == 0 ? me.velocity : normalize(me.velocity);
-		vec2 target_norm_vel = length(target_vel) == 0 ? target_vel : normalize(target_vel);
+		vec2 me_norm_vel = length(me.velocity) < ZERO_TOLERANCE ? me.velocity : normalize(me.velocity);
+		vec2 target_norm_vel = length(target_vel) < ZERO_TOLERANCE ? target_vel : normalize(target_vel);
 		
 		vec2 temp_new_vel = mix(me_norm_vel, target_norm_vel, clamp(params.turn_speed * params.delta, 0.0, 1.0));
-		new_vel = (length(temp_new_vel) == 0 ? temp_new_vel : normalize(temp_new_vel)) * SPEED; //SPEED * vec2(cos(rot), sin(rot));
+		new_vel = (length(temp_new_vel) < ZERO_TOLERANCE ? temp_new_vel : normalize(temp_new_vel)) * params.speed;
 	}
 
 	boidBufferWrite.boids[id].velocity = new_vel;//length(target_vel - me.velocity) < ACCELERATION * params.delta ? target_vel : me.velocity + ACCELERATION * normalize(target_vel) * params.delta;
@@ -152,10 +159,16 @@ void main() {
 
 	boidBufferWrite.boids[id].position = mod(boidBufferWrite.boids[id].position, vec2(VIEWPORT_WIDTH, VIEWPORT_HEIGHT));
 
-	float c = new_vel.x / length(new_vel);
-	float s = new_vel.y / length(new_vel);
-
 	int base = int(id * 8);
+
+	float c = transform_buffer.arr[base + 0]; // initalize to previous orientation
+	float s = transform_buffer.arr[base + 4];
+	if (length(new_vel) > ZERO_TOLERANCE) {
+		c = new_vel.x / length(new_vel);
+		s = new_vel.y / length(new_vel);
+	}
+
+	
 	transform_buffer.arr[base + 0] = c;
 	transform_buffer.arr[base + 1] = -s;
 	transform_buffer.arr[base + 2] = 0;
