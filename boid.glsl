@@ -1,8 +1,6 @@
 #[compute]
 #version 450
 
-#define MAX_BOID_COUNT (1024 * 50)
-
 #define BOID_COUNT (1024 * 20)
 
 #define WIDTH 32
@@ -26,12 +24,12 @@ struct Boid {
 layout(local_size_x = WORK_GROUP_SIZE, local_size_y = 1, local_size_z = 1) in;
 
 layout(set = 0, binding = 0, std430) buffer BoidBufferRead {
-    Boid boids[MAX_BOID_COUNT];
+    Boid boids[BOID_COUNT];
 }
 boidBufferRead;
 
 layout(set = 0, binding = 2, std430) buffer BoidBufferWrite {
-    Boid boids[MAX_BOID_COUNT];
+    Boid boids[BOID_COUNT];
 }
 boidBufferWrite;
 
@@ -52,11 +50,11 @@ layout(set = 0, binding = 3, std430) buffer IndexOffsetsBuffer {
 } indexOffsetsBuffer;
 
 layout(set = 0, binding = 4, std430) buffer OffsetsBuffer {
-	uint arr[MAX_BOID_COUNT];
+	uint arr[BOID_COUNT];
 } offsetsBuffer;
 
 layout(set = 0, binding = 5, std430) buffer TransformBuffer {
-	float arr[MAX_BOID_COUNT * 8];
+	float arr[BOID_COUNT * 8];
 } transform_buffer;
 
 
