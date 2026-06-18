@@ -15,11 +15,37 @@ zoom = Vector2(0.75, 0.75)
 
 [node name="HUD" type="CanvasLayer" parent="." unique_id=1363711778]
 
-[node name="cohesion" type="HSlider" parent="HUD" unique_id=1191733127]
+[node name="num_boids" type="HSlider" parent="HUD" unique_id=631936413]
 offset_left = 2450.0
 offset_top = 100.0
 offset_right = 2750.0
 offset_bottom = 200.0
+max_value = 30720.0
+step = 10.0
+value = 20480.0
+
+[node name="Label" type="Label" parent="HUD/num_boids" unique_id=1917208622]
+layout_mode = 0
+offset_top = -20.0
+offset_right = 188.0
+offset_bottom = 38.0
+theme_override_font_sizes/font_size = 38
+text = "# Boids"
+
+[node name="Label2" type="Label" parent="HUD/num_boids" unique_id=431835901]
+layout_mode = 0
+offset_left = 310.0
+offset_top = 10.0
+offset_right = 370.0
+offset_bottom = 68.0
+theme_override_font_sizes/font_size = 38
+text = "20480"
+
+[node name="cohesion" type="HSlider" parent="HUD" unique_id=1191733127]
+offset_left = 2450.0
+offset_top = 200.0
+offset_right = 2750.0
+offset_bottom = 300.0
 max_value = 3.0
 step = 0.01
 value = 1.2
@@ -43,9 +69,9 @@ text = "1.2"
 
 [node name="alignment" type="HSlider" parent="HUD" unique_id=33262281]
 offset_left = 2450.0
-offset_top = 200.0
+offset_top = 300.0
 offset_right = 2750.0
-offset_bottom = 300.0
+offset_bottom = 400.0
 max_value = 3.0
 step = 0.01
 value = 0.5
@@ -70,9 +96,9 @@ text = "1.2"
 
 [node name="separation" type="HSlider" parent="HUD" unique_id=335062803]
 offset_left = 2450.0
-offset_top = 300.0
+offset_top = 400.0
 offset_right = 2750.0
-offset_bottom = 400.0
+offset_bottom = 500.0
 max_value = 200.0
 step = 0.1
 value = 100.0
@@ -96,9 +122,9 @@ text = "1.2"
 
 [node name="turn_speed" type="HSlider" parent="HUD" unique_id=1775326691]
 offset_left = 2450.0
-offset_top = 400.0
+offset_top = 500.0
 offset_right = 2750.0
-offset_bottom = 500.0
+offset_bottom = 600.0
 max_value = 20.0
 step = 0.01
 value = 8.0
@@ -122,9 +148,9 @@ text = "1.2"
 
 [node name="neighbor_radius" type="HSlider" parent="HUD" unique_id=1934892591]
 offset_left = 2450.0
-offset_top = 500.0
+offset_top = 600.0
 offset_right = 2750.0
-offset_bottom = 600.0
+offset_bottom = 700.0
 max_value = 200.0
 step = 0.1
 value = 80.0
@@ -148,9 +174,9 @@ text = "1.2"
 
 [node name="separation_radius" type="HSlider" parent="HUD" unique_id=2134107327]
 offset_left = 2450.0
-offset_top = 600.0
+offset_top = 700.0
 offset_right = 2750.0
-offset_bottom = 700.0
+offset_bottom = 800.0
 max_value = 200.0
 step = 0.1
 value = 40.0
@@ -174,9 +200,9 @@ text = "1.2"
 
 [node name="speed" type="HSlider" parent="HUD" unique_id=828203866]
 offset_left = 2450.0
-offset_top = 700.0
+offset_top = 800.0
 offset_right = 2750.0
-offset_bottom = 800.0
+offset_bottom = 900.0
 min_value = 10.0
 max_value = 5000.0
 value = 300.0
