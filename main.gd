@@ -21,7 +21,7 @@ extends Node2D
 
 
 
-var boid_count : int = 1024 * 50
+const BOID_COUNT := 1024 * 20
 const BOID_SIZE := 16
 
 var rd : RenderingDevice
@@ -76,18 +76,18 @@ func _ready() -> void:
 	qmesh.size = Vector2(8, 8)
 	mm.mesh = qmesh
 	mm.transform_format = MultiMesh.TRANSFORM_2D
-	# mm.instance_count = boid_count
+	# mm.instance_count = BOID_COUNT
 	
 	$MultiMeshInstance2D.multimesh = mm
 
 	screen_size = get_viewport_rect().size
 	$MultiMeshInstance2D.multimesh.transform_format = MultiMesh.TRANSFORM_2D
 	$MultiMeshInstance2D.multimesh.mesh = qmesh
-	$MultiMeshInstance2D.multimesh.instance_count = boid_count
+	$MultiMeshInstance2D.multimesh.instance_count = BOID_COUNT
 
 
 	rd = RenderingServer.get_rendering_device()
-	
+
 	# load shader
 	shader_clean = rd.shader_create_from_spirv(load("res://clean.glsl").get_spirv())
 	pipeline_clean = rd.compute_pipeline_create(shader_clean)
@@ -103,8 +103,8 @@ func _ready() -> void:
 
 	# create boid data
 	var boid_bytes = PackedByteArray()
-	boid_bytes.resize(boid_count * BOID_SIZE)
-	for i in boid_count:
+	boid_bytes.resize(BOID_COUNT * BOID_SIZE)
+	for i in BOID_COUNT:
 		var offset = i * BOID_SIZE;
 		var pos = Vector2(randf() * VIEWPORT_WIDTH, randf() * VIEWPORT_HEIGHT)
 		var vel = 100 * Vector2(randf()*2-1, randf()*2-1).normalized()
@@ -121,7 +121,7 @@ func _ready() -> void:
 	var param_bytes = PackedByteArray()
 	param_bytes.resize(68) # std140 requires 16 bytes minimum
 	param_bytes.encode_float(0, 0.0) # delta (updated each frame)
-	param_bytes.encode_u32(4, boid_count)
+	param_bytes.encode_u32(4, BOID_COUNT)
 	param_bytes.encode_float(8, 1.2)
 	param_bytes.encode_float(12, 0.5)
 	param_bytes.encode_float(16, 100)
@@ -141,24 +141,21 @@ func _ready() -> void:
 		index_offsets_bytes.encode_u32(i * 4, 0)
 	count_buffer = rd.storage_buffer_create(count_bytes.size(), count_bytes)
 	index_offsets_buffer = rd.storage_buffer_create(index_offsets_bytes.size(), index_offsets_bytes)
-	
+
 	# offsets_buffer
 	var offsets_bytes = PackedByteArray()
-	offsets_bytes.resize(boid_count * 4)
-	
-	for i in range(boid_count):
+	offsets_bytes.resize(BOID_COUNT * 4)
+	for i in range(BOID_COUNT):
 		offsets_bytes.encode_u32(i * 4, 0)
 	offsets_buffer = rd.storage_buffer_create(offsets_bytes.size(), offsets_bytes)
-	
+
 	# transform set
 	var transform_bytes = PackedByteArray()
-	transform_bytes.resize(boid_count * 8 * 4)
-	
-	for i in range(boid_count * 8):
+	transform_bytes.resize(BOID_COUNT * 8 * 4)
+	for i in range(BOID_COUNT * 8):
 		transform_bytes.encode_float(i * 4, 0)
-
 	transform_buffer = rd.storage_buffer_create(transform_bytes.size(), transform_bytes)
-	
+
 	# uniform sets
 	clean_uniform_set = make_clean_uniform_set()
 	count_uniform_set = make_count_uniform_set(boid_buffer)
@@ -166,11 +163,10 @@ func _ready() -> void:
 	prefix_uniform_set = make_prefix_uniform_set()
 	scatter_uniform_set = make_scatter_uniform(boid_buffer)
 	scatter_uniform_set2 = make_scatter_uniform(boid_buffer2)
-	
+
 	# create boid uniform set
 	boid_uniform_set = make_uniform_set(boid_buffer, boid_buffer2)
 	boid_uniform_set2 = make_uniform_set(boid_buffer2, boid_buffer)
-	
 
 func _physics_process(delta: float) -> void:
 	var active_boid_set = boid_uniform_set if not ping_pong else boid_uniform_set2
@@ -182,11 +178,7 @@ func _physics_process(delta: float) -> void:
 	var param_bytes = PackedByteArray()
 	param_bytes.resize(68)
 	param_bytes.encode_float(0, delta)
-	# print(int($HUD/boid_count.value) == 1024 * 20)
-	# print(int($HUD/boid_count.value))
-	# print(1024 * 20)
-	#boid_count = int($HUD/boid_count.value)
-	param_bytes.encode_u32(4, int($HUD/boid_count.value))
+	param_bytes.encode_u32(4, BOID_COUNT)
 	param_bytes.encode_float(8, float($HUD/cohesion.value))
 	param_bytes.encode_float(12, float($HUD/alignment.value))
 	param_bytes.encode_float(16, float($HUD/separation.value))
@@ -195,9 +187,6 @@ func _physics_process(delta: float) -> void:
 	param_bytes.encode_float(28, float($HUD/separation_radius.value))
 	param_bytes.encode_float(32, float($HUD/speed.value))
 	rd.buffer_update(params_buffer, 0, param_bytes.size(), param_bytes)
-
-	$HUD/boid_count/Label2.text = str($HUD/boid_count.value)
-	$MultiMeshInstance2D.multimesh.visible_instance_count = int($HUD/boid_count.value)
 
 	$HUD/cohesion/Label2.text = str($HUD/cohesion.value)
 	$HUD/alignment/Label2.text = str($HUD/alignment.value)
@@ -218,7 +207,7 @@ func _physics_process(delta: float) -> void:
 	compute_list = rd.compute_list_begin()
 	rd.compute_list_bind_compute_pipeline(compute_list, pipeline_count)
 	rd.compute_list_bind_uniform_set(compute_list, active_count_set, 0)
-	rd.compute_list_dispatch(compute_list, int(ceil(boid_count / WORK_GROUP_SIZE)), 1, 1)
+	rd.compute_list_dispatch(compute_list, int(ceil(BOID_COUNT / WORK_GROUP_SIZE)), 1, 1)
 	rd.compute_list_end()
 	# var bytess = rd.buffer_get_data(count_buffer)
 	# var arr = []
@@ -243,18 +232,18 @@ func _physics_process(delta: float) -> void:
 	compute_list = rd.compute_list_begin()
 	rd.compute_list_bind_compute_pipeline(compute_list, pipeline_scatter)
 	rd.compute_list_bind_uniform_set(compute_list, active_scatter_set, 0)
-	rd.compute_list_dispatch(compute_list, int(ceil(boid_count / WORK_GROUP_SIZE)), 1, 1)
+	rd.compute_list_dispatch(compute_list, int(ceil(BOID_COUNT / WORK_GROUP_SIZE)), 1, 1)
 	rd.compute_list_end()
 
 	# dispatch boids
 	compute_list = rd.compute_list_begin()
 	rd.compute_list_bind_compute_pipeline(compute_list, pipeline_boids)
 	rd.compute_list_bind_uniform_set(compute_list, active_boid_set, 0)
-	rd.compute_list_dispatch(compute_list, int(ceil(boid_count / WORK_GROUP_SIZE)), 1, 1)
+	rd.compute_list_dispatch(compute_list, int(ceil(BOID_COUNT / WORK_GROUP_SIZE)), 1, 1)
 	rd.compute_list_end()
 	# bytess = rd.buffer_get_data(offsets_buffer)
 	# arr = []
-	# for i in range(boid_count):
+	# for i in range(BOID_COUNT):
 	# 	arr.append(int(bytess.decode_u32(i*4)))
 	# print(arr)
 
@@ -266,7 +255,7 @@ func _physics_process(delta: float) -> void:
 
 	RenderingServer.multimesh_set_buffer($MultiMeshInstance2D.multimesh.get_rid(), bytes.to_float32_array())
 
-	# for i in boid_count:
+	# for i in BOID_COUNT:
 	# 		var offset = i * BOID_SIZE
 	# 		var pos = Vector2(
 	# 				bytes.decode_float(offset + 0),
